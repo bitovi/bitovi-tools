@@ -14,5 +14,6 @@ module.exports = function (grunt) {
 			grunt.file.expand(this.data.src);
 		}
 		docco.document(_.extend({args: src},this.options()));
+		done();
 	});
 }
