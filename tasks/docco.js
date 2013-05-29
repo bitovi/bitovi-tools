@@ -13,6 +13,14 @@ module.exports = function (grunt) {
 		} else {
 			grunt.file.expand(this.data.src);
 		}
-		docco.document(_.extend({args: src},this.options()));
+
+		var proc = docco.document(_.extend({
+			args: src
+		}, this.options()));
+
+		proc.on('disconnect',function(){
+			done();
+		})
+
 	});
 }

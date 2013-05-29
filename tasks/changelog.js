@@ -24,9 +24,9 @@ module.exports = function(grunt) {
 
 			if(grunt.file.exists('changelog.md')) {
 				log = grunt.file.read('changelog.md');
-			};
+			}
 
-			ejs.renderFile(__dirname + '/../changelog.ejs', {
+			ejs.renderFile(__dirname + '/../resources/changelog.ejs', {
 				version: self.data.version,
 				date: new Date(Date.now()),
 				issues: issues
@@ -44,11 +44,15 @@ module.exports = function(grunt) {
 
 		req = https.request({
 			hostname: 'api.github.com',
-			path: path
+			path: path,
+			headers: {
+				'User-Agent': 'node.jss'
+			}
 		}, function(res) {
 
 			res.on('data', function(data) {
 				buffer += data;
+				console.log(data,buffer)
 			});
 
 			res.on('end', write);
