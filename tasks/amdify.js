@@ -7,16 +7,16 @@ module.exports = function(grunt) {
 	grunt.registerMultiTask('amdify', 'Convert Steal to AMD modules', function() {
 		var done = this.async();
 		var options = this.options();
-		this.files.forEach(function(current) {
-			amdify(current.src, options, function(error, data) {
-				_.each(data, function(content, name) {
-					var fullName = path.join(current.dest, name) + '.js';
-					grunt.file.mkdir(path.dirname(fullName));
-					grunt.file.write(fullName, content);
-					grunt.verbose.writeln('Writing ' + fullName);
-				});
-				done();
+		var dest = this.files[0].dest;
+
+		amdify(options.ids, options, function(error, data) {
+			_.each(data, function(content, name) {
+				var fullName = path.join(dest, name) + '.js';
+				grunt.file.mkdir(path.dirname(fullName));
+				grunt.file.write(fullName, content);
+				grunt.verbose.writeln('Writing ' + fullName);
 			});
+			done();
 		});
 	});
 }
