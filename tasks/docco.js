@@ -18,9 +18,5 @@ module.exports = function (grunt) {
 			args: src
 		}, this.options()));
 
-		proc.on('disconnect',function(){
-			done();
-		})
-
 	});
 }
