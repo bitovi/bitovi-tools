@@ -12,8 +12,9 @@ module.exports = function(grunt) {
 		amdify(options.ids, options, function(error, data) {
 			_.each(data, function(content, name) {
 				var fullName = path.join(dest, name) + '.js';
+				var banner = options.banner || '';
 				grunt.file.mkdir(path.dirname(fullName));
-				grunt.file.write(fullName, content);
+				grunt.file.write(fullName, banner + content);
 				grunt.verbose.writeln('Writing ' + fullName);
 			});
 			done();
