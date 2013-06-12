@@ -46,7 +46,7 @@ module.exports = function(grunt) {
 			hostname: 'api.github.com',
 			path: path,
 			headers: {
-				'User-Agent': 'node.jss'
+				'User-Agent': 'node.js'
 			}
 		}, function(res) {
 
