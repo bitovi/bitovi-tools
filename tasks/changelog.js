@@ -52,7 +52,6 @@ module.exports = function(grunt) {
 
 			res.on('data', function(data) {
 				buffer += data;
-				console.log(data,buffer)
 			});
 
 			res.on('end', write);
