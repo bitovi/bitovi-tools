@@ -11,7 +11,7 @@ module.exports = function(grunt) {
 
 		stealify(options.ids, options, function(error, data) {
 			_.each(data, function(content, name) {
-				var fullName = path.join(dest, name) + '.js';
+				var fullName = path.join(dest, name);
 				var banner = options.banner || '';
 				grunt.file.mkdir(path.dirname(fullName));
 				grunt.file.write(fullName, banner + content);
