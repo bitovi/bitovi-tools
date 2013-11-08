@@ -11,7 +11,7 @@ module.exports = function (grunt) {
 		this.files.forEach(function (f) {
 			grunt.file.mkdir(f.dest);
 			var plugins = _.filter(_.keys(options.builder.modules), function (mod) {
-				return options.builder.modules[mod]["type"] === "plugin";
+				return options.builder.modules[mod]["type"] === "plugin" && !options.builder.modules[mod].hidden;
 			});
 
 			f.src.forEach(function (src) {
