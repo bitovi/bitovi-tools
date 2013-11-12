@@ -21,10 +21,6 @@ function getIssues(options, callback) {
 }
 
 function getMilestone(options, callback) {
-  if (options.milestone) {
-    return callback(null, options.milestone);
-  }
-
   var params = querystring.stringify({
     state: 'closed',
     sort: 'due_date',
@@ -58,7 +54,7 @@ module.exports = function(grunt) {
         }
 
         ejs.renderFile(__dirname + '/../resources/changelog.ejs', {
-          version: options.version,
+          milestone: milestone,
           date: new Date(Date.now()),
           issues: issues
         }, function(e, template) {
