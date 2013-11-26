@@ -3,6 +3,9 @@ var querystring = require('querystring');
 var ejs = require('ejs');
 var request = require('request');
 var githubApi = 'https://api.github.com';
+var headers = {
+  'User-Agent': 'Bitovi Tools'
+};
 
 function getIssues(options, callback) {
   var params = querystring.stringify({
@@ -14,7 +17,8 @@ function getIssues(options, callback) {
 
   request({
     url: githubApi + path,
-    json: true
+    json: true,
+    headers: headers
   }, function(error, data) {
     callback(error, data.body);
   });
@@ -30,7 +34,8 @@ function getMilestone(options, callback) {
 
   request({
     url: githubApi + path,
-    json: true
+    json: true,
+    headers: headers
   }, function(error, data) {
     if(data.body && data.body[0] && data.body[0]) {
       return callback(error, data.body[0]);
