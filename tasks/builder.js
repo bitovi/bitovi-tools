@@ -50,6 +50,9 @@ module.exports = function (grunt) {
 
 					//build core distributable
 					configurations.forEach(function (name) {
+                        if(info.configurations[name].hidden) {
+                            return;
+                        }
 
 						builderOptions.configuration = name;
 						delete builderOptions.plugin;
