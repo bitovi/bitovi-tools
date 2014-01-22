@@ -5,6 +5,25 @@ var builder = steal.build.builder;
 
 module.exports = function (grunt) {
 	var _ = grunt.util._;
+
+    function buildFiles(build, name, dest, dev, options) {
+        name = path.join(dest, name);
+
+        build(_.omit(options, 'dev'), function (error, content, banner) {
+            var filename = name + '.js';
+            console.log('Writing ' + filename);
+            grunt.file.write(filename, banner + content);
+        });
+
+        if(dev) {
+            build(options, function (error, content, banner) {
+                var filename = name + '.dev.js';
+                console.log('Writing ' + filename);
+                grunt.file.write(filename, banner + content);
+            });
+        }
+    }
+
 	grunt.registerMultiTask('builder', 'Pluginify using the download builder configuration', function () {
 		var done = this.async();
 		var options = this.options();
@@ -35,11 +54,7 @@ module.exports = function (grunt) {
 						builderOptions.configuration = name;
 						delete builderOptions.plugin;
 
-						build(builderOptions, function (error, content, banner) {
-							var filename = path.join(f.dest, (options.prefix || '') + name + '.js');
-							console.log('Writing ' + filename);
-							grunt.file.write(filename, banner + content);
-						});
+                        buildFiles(build, (options.prefix || '') + name, f.dest, options.dev, builderOptions);
 
 						plugins.forEach(function (plugin) {
 							var pluginConfigs = options.builder.modules[plugin].configurations;
@@ -56,11 +71,7 @@ module.exports = function (grunt) {
 
 								builderOptions.generatedPlugins[plugin] = true;
 
-								build(builderOptions, function (error, content, banner) {
-									var filename = path.join(f.dest, options.builder.modules[plugin].name.toLowerCase() + '.js');
-									console.log('Writing ' + filename);
-									grunt.file.write(filename, banner + content);
-								});
+                                buildFiles(build, options.builder.modules[plugin].name.toLowerCase(), f.dest, false, builderOptions);
 							}
 
 						});
