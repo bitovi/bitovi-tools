@@ -5,26 +5,37 @@ var builder = steal.build.builder;
 
 module.exports = function (grunt) {
     var _ = grunt.util._;
+    var async = grunt.util.async;
 
     function buildFiles(build, name, dest, dev, options, callback) {
         name = path.join(dest, name);
-
-        build(_.omit(options, 'dev'), function (error, content, banner, steals) {
-            var filename = name + '.js';
-            console.log('Writing ' + filename);
-            grunt.file.write(filename, banner + content);
-            if (callback) {
-                callback.apply(this, arguments);
+        var workers = [
+            function(cb) {
+                build(_.omit(options, 'dev'), function (error, content, banner, steals) {
+                    var filename = name + '.js';
+                    console.log('Writing ' + filename);
+                    grunt.file.write(filename, banner + content);
+                    cb.apply(this, arguments);
+                });
             }
-        });
+        ];
 
         if (dev) {
-            build(options, function (error, content, banner) {
-                var filename = name + '.dev.js';
-                console.log('Writing ' + filename);
-                grunt.file.write(filename, banner + content);
+            workers.push(function(cb) {
+                build(options, function (error, content, banner) {
+                    var filename = name + '.dev.js';
+                    console.log('Writing ' + filename);
+                    grunt.file.write(filename, banner + content);
+                    cb.apply(this, arguments);
+                });
             });
         }
+
+        async.series(workers, function(err, args) {
+            if(callback) {
+                callback.apply(this, [err].concat(args[0]));
+            }
+        });
     }
 
     grunt.registerMultiTask('builder', 'Pluginify using the download builder configuration', function () {
