@@ -6,7 +6,7 @@ var pluginify = require("steal-tools").pluginify;
 module.exports = function (grunt) {
 
 	function saveFile(item, filename, ignores, dev) {
-		console.log("Saving...", filename);
+		console.log("Writing", filename);
 
 		// Get the content for this one.
 		var moduleName = item.moduleName || null;
