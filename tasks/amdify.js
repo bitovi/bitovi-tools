@@ -12,10 +12,10 @@ module.exports = function(grunt) {
 		var dist = file.dest;
 
 		grapher(options, function(info){
-			var configurations = info.configurations;
+			var base = { graph: info.graph };
 			var plugins = grapher.getPlugins(info.modules);
 
-			_.each(configurations, saveFile);
+			saveFile(base);
 			_.each(plugins, saveFile);
 
 			console.log("Files wrote.");
@@ -23,7 +23,11 @@ module.exports = function(grunt) {
 			done();
 		});
 
-		var saved = {};
+		var saved = {
+			"jquery": true,
+			"steal/dev/dev": true,
+			"stealconfig": true
+		};
 		function saveFile(item, name) {
 			if(saved[name]) return;
 			saved[name] = true;

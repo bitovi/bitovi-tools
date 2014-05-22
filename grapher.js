@@ -28,42 +28,22 @@ var utilities = {
 	},
 
 	/**
-	 * Load configurations and generate pluginify functions for each
+	 * Load the main file using default configuration options
 	 *
-	 * @method loadConfigurations
+	 * @method loadMain
 	 * @param {Object} info The info object
 	 * @param {Function} callback
 	 */
-	loadConfigurations: function(info, callback){
-		var configurations = info.configurations;
-		var keys = _.keys(configurations);
-		var modules = _.keys(info.modules);
+	loadMain: function(info, callback){
+		var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
 
-		function grapher() {
-			var name = keys.shift();
-			if(!name) {
-				// We have reached the end, call the callback with the configurations
-				return callback(configurations);
-			}
+		make(info.system).then(function(data){
+			info.graph = data.graph;
 
-			var configuration = configurations[name];
-			var stealConfig = configuration.steal || {};
-			var system = _.extend({}, info.system, stealConfig);
-
-			var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
-
-			make(system)
-			.then(function(data){
-				configuration.graph = data.graph;
-
-				// Recurse
-				grapher();
-			});
-		}
-
-		grapher();
-
+			callback(info);
+		});
 	},
+
 
 	/**
 	 * Load plugins and generate pluginify functions for each
@@ -159,12 +139,13 @@ var builder = function (options, callback) {
 	var info = _.extend({
 		path: filePath,
 		configurations: {},
+		configuration: options.configuration
 	}, builder, pkg, {
 		system: options.steal
 	});
 
-	utilities.loadConfigurations(info, function(configurations){
-		console.log("Loaded configurations.");
+	utilities.loadMain(info, function(){
+		console.log("Loaded base.");
 
 		utilities.loadPlugins(info, function(plugins){
 			console.log("Loaded plugins.");

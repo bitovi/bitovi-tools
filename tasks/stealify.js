@@ -13,10 +13,10 @@ module.exports = function(grunt) {
 		options.transpile = false;
 
 		grapher(options, function(info){
-			var configurations = info.configurations;
+			var base = { graph: info.graph };
 			var plugins = grapher.getPlugins(info.modules);
 
-			_.each(configurations, saveFile);
+			saveFile(base);
 			_.each(plugins, saveFile);
 
 			console.log("Files wrote.");
@@ -24,18 +24,21 @@ module.exports = function(grunt) {
 			done();
 		});
 
-		var saved = {};
+		var saved = {
+			"jquery": true,
+			"steal/dev/dev": true,
+			"stealconfig": true
+		};
 		function saveFile(item, name) {
 			try {
 				if(saved[name]) return;
 				saved[name] = true;
 
-				debugger;
-
 				// Save this file out to the proper location
 				var source = item.load && item.load.source;
 				if(source) {
-					var filename = path.join(dist, name + ".js");
+					var outname = name.replace(/^can/, "canjs/"); 
+					var filename = path.join(dist, outname + ".js");
 
 					grunt.verbose.writeln('Writing ' + filename);
 					grunt.file.write(filename, source);
