@@ -10,9 +10,6 @@ module.exports = function(grunt) {
 		var options = this.options();
 		var file = this.files[0];
 		var dist = file.dest;
-		options.main = file.src[0].substr(0, file.src[0].length - 3);
-
-		debugger;
 
 		grapher(options, function(info){
 			var configurations = info.configurations;

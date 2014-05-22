@@ -11,7 +11,6 @@ module.exports = function(grunt) {
 		var file = this.files[0];
 		var dist = file.dest;
 		options.transpile = false;
-		options.main = file.src[0].substr(0, file.src[0].length - 3);
 
 		grapher(options, function(info){
 			var configurations = info.configurations;

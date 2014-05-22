@@ -158,17 +158,14 @@ var builder = function (options, callback) {
 		path: filePath,
 		configurations: {},
 	}, builder, pkg, {
-		system: _.extend(options.steal, {
-			config: options.config,
-			main: options.main
-		})
+		system: options.steal
 	});
 
 	utilities.loadConfigurations(info, function(configurations){
 		console.log("Loaded configurations.");
 
 		utilities.loadPlugins(info, function(plugins){
-			console.log("Loaded plugins");
+			console.log("Loaded plugins.");
 
 			callback(info);
 		});

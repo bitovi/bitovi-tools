@@ -79,7 +79,6 @@ module.exports = function (grunt) {
 		var done = this.async();
 		var options = this.options();
 		var file = this.files[0];
-		options.main = file.src[0].substr(0, file.src[0].length - 3);
 
 		builder(options, function(info){
 			var configurations = info.configurations;
