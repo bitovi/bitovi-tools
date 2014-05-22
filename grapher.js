@@ -1,7 +1,7 @@
 var _ = require("lodash");
 var path = require('path');
 var fs = require('fs');
-var pluginify = require("steal-tools").pluginify;
+var makeOrderedTranspiledMinifiedGraph = require("steal-tools").graph.makeOrderedTranspiledMinified;
 
 var utilities = {
 	/**
@@ -38,7 +38,7 @@ var utilities = {
 		var keys = _.keys(configurations);
 		var modules = _.keys(info.modules);
 
-		function pluginifier() {
+		function grapher() {
 			var name = keys.shift();
 			if(!name) {
 				// We have reached the end, call the callback with the configurations
@@ -49,18 +49,16 @@ var utilities = {
 			var stealConfig = configuration.steal || {};
 			var system = _.extend({}, info.system, stealConfig);
 
-			pluginify({
-				system: system
-			}).then(function(pluginify){
-				// Attach the pluginify function to the configuration
-				configuration.pluginify = pluginify;
+			makeOrderedTranspiledMinifiedGraph(system)
+			.then(function(data){
+				configuration.graph = data.graph;
 
-				// Recurse, doing the next pluginify function
-				pluginifier();
+				// Recurse
+				grapher();
 			});
 		}
 
-		pluginifier();
+		grapher();
 
 	},
 
@@ -72,7 +70,7 @@ var utilities = {
 		var plugins = utilities.getPlugins(modules);
 		var keys = Object.keys(plugins);
 
-		function pluginifier() {
+		function grapher() {
 			var name = keys.shift();
 			if(!name) {
 				return callback(plugins);
@@ -82,7 +80,7 @@ var utilities = {
 
 			// If this module is hidden, skip it.
 			if(module.hidden) {
-				return pluginifier();
+				return grapher();
 			}
 
 			var parts = name.split("/");
@@ -92,16 +90,15 @@ var utilities = {
 				main: moduleName
 			});
 
-			pluginify({
-				system: system
-			}).then(function(pluginify){
-				module.pluginify = pluginify;
+			makeOrderedTranspiledMinifiedGraph(system)
+			.then(function(data){
+				module.graph = data.graph;
 
-				pluginifier();
+				grapher();
 			});
 		}
 
-		pluginifier();
+		grapher();
 	},
 
 	/**
@@ -168,7 +165,9 @@ var builder = function (options, callback) {
 		console.log("Loaded configurations.");
 
 		utilities.loadPlugins(info, function(plugins){
-			console.log("Loaded plugins");
+			console.log("Loaded plugins.");
+
+			debugger;
 
 			callback(info);
 		});

@@ -75,7 +75,6 @@ module.exports = function (grunt) {
 		});
 	}
 
-
 	grunt.registerMultiTask("builder", "Pluginify using the download builder configuration", function () {
 		var done = this.async();
 		var options = this.options();

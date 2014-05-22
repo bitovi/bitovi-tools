@@ -1,23 +1,48 @@
-var amdify = require('steal').build.amdify;
+var fs = require("fs");
 var path = require('path');
+var grapher = require("../grapher");
 
 module.exports = function(grunt) {
 	var _ = grunt.util._;
 
-	grunt.registerMultiTask('amdify', 'Convert Steal to AMD modules', function() {
+	grunt.registerMultiTask("amdify", "Convert Steal to AMD modules", function() {
 		var done = this.async();
 		var options = this.options();
-		var dest = this.files[0].dest;
+		var file = this.files[0];
+		var dist = file.dest;
+		options.main = file.src[0].substr(0, file.src[0].length - 3);
 
-		amdify(options.ids, options, function(error, data) {
-			_.each(data, function(content, name) {
-				var fullName = path.join(dest, name) + '.js';
-				var banner = options.banner || '';
-				grunt.file.mkdir(path.dirname(fullName));
-				grunt.file.write(fullName, banner + content);
-				grunt.verbose.writeln('Writing ' + fullName);
-			});
-			done();
+		debugger;
+
+		grapher(options, function(info){
+			var configurations = info.configurations;
+			var plugins = grapher.getPlugins(info.modules);
+
+			_.each(configurations, saveFile);
+			_.each(plugins, saveFile);
 		});
+
+		var saved = {};
+		function saveFile(item, name) {
+			if(saved[name]) return;
+			saved[name] = true;
+
+			// Save this file out to the proper location
+			var source = item.transpiledSource;
+			if(source) {
+				var parts = name.split("/");
+				var file = parts[parts.length - 1] + ".js";
+				var folder = path.dirname(path.dirname(name));
+				var filename = path.join(dist, folder, file);
+
+				grunt.verbose.writeln('Writing ' + filename);
+				grunt.file.write(filename, source);
+			}
+
+			var graph = item.graph;
+			if(graph) {
+				_.each(graph, saveFile);
+			}
+		}
 	});
 }
