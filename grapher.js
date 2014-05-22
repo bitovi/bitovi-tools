@@ -1,6 +1,7 @@
 var _ = require("lodash");
 var path = require('path');
 var fs = require('fs');
+var makeGraph = require("steal-tools").graph.make;
 var makeOrderedTranspiledMinifiedGraph = require("steal-tools").graph.makeOrderedTranspiledMinified;
 
 var utilities = {
@@ -49,7 +50,9 @@ var utilities = {
 			var stealConfig = configuration.steal || {};
 			var system = _.extend({}, info.system, stealConfig);
 
-			makeOrderedTranspiledMinifiedGraph(system)
+			var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
+
+			make(system)
 			.then(function(data){
 				configuration.graph = data.graph;
 
@@ -90,7 +93,9 @@ var utilities = {
 				main: moduleName
 			});
 
-			makeOrderedTranspiledMinifiedGraph(system)
+			var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
+
+			make(system)
 			.then(function(data){
 				module.graph = data.graph;
 
@@ -166,8 +171,6 @@ var builder = function (options, callback) {
 
 		utilities.loadPlugins(info, function(plugins){
 			console.log("Loaded plugins.");
-
-			debugger;
 
 			callback(info);
 		});

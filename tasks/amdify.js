@@ -20,6 +20,10 @@ module.exports = function(grunt) {
 
 			_.each(configurations, saveFile);
 			_.each(plugins, saveFile);
+
+			console.log("Files wrote.");
+
+			done();
 		});
 
 		var saved = {};
