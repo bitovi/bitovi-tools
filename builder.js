@@ -49,9 +49,7 @@ var utilities = {
 			var stealConfig = configuration.steal || {};
 			var system = _.extend({}, info.system, stealConfig);
 
-			pluginify({
-				system: system
-			}).then(function(pluginify){
+			pluginify(system).then(function(pluginify){
 				// Attach the pluginify function to the configuration
 				configuration.pluginify = pluginify;
 
@@ -92,9 +90,7 @@ var utilities = {
 				main: moduleName
 			});
 
-			pluginify({
-				system: system
-			}).then(function(pluginify){
+			pluginify(system).then(function(pluginify){
 				module.pluginify = pluginify;
 
 				pluginifier();
