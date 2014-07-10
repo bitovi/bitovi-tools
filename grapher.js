@@ -6,6 +6,30 @@ var makeOrderedTranspiledMinifiedGraph = require("steal-tools").graph.makeOrdere
 
 var utilities = {
 	/**
+	 * @method getModulesOfType
+	 *
+	 * Get the modules of a specific type from a builder.json file's modules
+	 *
+	 * @param {Object} modules The modules
+	 * @param {String} type The type (plugin, loader, etc.)
+	 * @return {Object} Modules that are plugins.
+	 */
+	getModulesOfType: function(modules, type){
+		var keys = Object.keys(modules);
+		var out = {};
+
+		keys.forEach(function(moduleName) {
+			var module = modules[moduleName];
+			if(module.type === type) {
+				out[moduleName] = module;
+			}
+		});
+
+		return out;
+	},
+
+
+	/**
 	 * @method getPlugins
 	 *
 	 * Get the plugins from a builder.json file's modules
@@ -14,17 +38,7 @@ var utilities = {
 	 * @return {Object} Modules that are plugins.
 	 */
 	getPlugins: function(modules){
-		var keys = Object.keys(modules);
-		var plugins = {};
-
-		keys.forEach(function(moduleName) {
-			var module = modules[moduleName];
-			if(module.type === "plugin") {
-				plugins[moduleName] = module;
-			}
-		});
-
-		return plugins;
+		return utilities.getModulesOfType(modules, "plugin");
 	},
 
 	/**
@@ -85,6 +99,48 @@ var utilities = {
 
 		grapher();
 	},
+
+	loadLoaders: function(info, callback){
+		var modules = info.modules;
+		var loaders = utilities.getModulesOfType(modules, "loader");
+		var keys = Object.keys(loaders);
+
+		function grapher() {
+			var name = keys.shift();
+			if(!name) {
+				return callback(loaders);
+			}
+
+			var module = loaders[name];
+
+			// If this module is hidden, skip it.
+			if(module.hidden) {
+				return grapher();
+			}
+
+			var parts = name.split("/");
+			var moduleName = name.indexOf(".js") !== -1 ?
+				name.substr(0, name.indexOf(".js")) :
+				name + "/" + parts[parts.length - 1];
+
+
+			var system = _.extend({}, info.system, {
+				main: moduleName
+			});
+
+			var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
+
+			make(system)
+			.then(function(data){
+				module.graph = data.graph;
+
+				grapher();
+			});
+		}
+
+		grapher();
+	},
+
 
 	/**
 	 * @method maybeGetInfo
@@ -150,7 +206,9 @@ var builder = function (options, callback) {
 		utilities.loadPlugins(info, function(plugins){
 			console.log("Loaded plugins.");
 
-			callback(info);
+			utilities.loadLoaders(info, function() {
+				callback(info);
+			});
 		});
 	});
 };

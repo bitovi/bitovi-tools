@@ -82,7 +82,7 @@ module.exports = function (grunt) {
 
 		builder(options, function(info){
 			var configurations = info.configurations;
-			var plugins = builder.getPlugins(info.modules);
+			var plugins = builder.getModulesOfType(info.modules, "plugin");
 
 			// Save out the configuration files
 			saveConfigurations(options, file, configurations);

@@ -15,9 +15,11 @@ module.exports = function(grunt) {
 		grapher(options, function(info){
 			var base = { graph: info.graph };
 			var plugins = grapher.getPlugins(info.modules);
+			var loaders = grapher.getModulesOfType(info.modules, "loader");
 
 			saveFile(base);
 			_.each(plugins, saveFile);
+			_.each(loaders, saveFile);
 
 			console.log("Files wrote.");
 

@@ -4,26 +4,28 @@ var fs = require('fs');
 var pluginify = require("steal-tools").pluginify;
 
 var utilities = {
+ 
 	/**
-	 * @method getPlugins
+	 * @method getModulesOfType
 	 *
-	 * Get the plugins from a builder.json file's modules
+	 * Get the modules of a specific type from a builder.json file's modules
 	 *
 	 * @param {Object} modules The modules
+	 * @param {String} type The type (plugin, loader, etc.)
 	 * @return {Object} Modules that are plugins.
 	 */
-	getPlugins: function(modules){
+	getModulesOfType: function(modules, type){
 		var keys = Object.keys(modules);
-		var plugins = {};
+		var out = {};
 
 		keys.forEach(function(moduleName) {
 			var module = modules[moduleName];
-			if(module.type === "plugin") {
-				plugins[moduleName] = module;
+			if(module.type === type) {
+				out[moduleName] = module;
 			}
 		});
 
-		return plugins;
+		return out;
 	},
 
 	/**
@@ -33,71 +35,117 @@ var utilities = {
 	 * @param {Object} info The info object
 	 * @param {Function} callback
 	 */
-	loadConfigurations: function(info, callback){
+	loadConfigurations: function(info) {
 		var configurations = info.configurations;
 		var keys = _.keys(configurations);
 		var modules = _.keys(info.modules);
 
-		function pluginifier() {
-			var name = keys.shift();
-			if(!name) {
-				// We have reached the end, call the callback with the configurations
-				return callback(configurations);
+		return new Promise(function(resolve, reject) {
+
+			function pluginifier() {
+				var name = keys.shift();
+				if(!name) {
+					// We have reached the end, call the callback with the configurations
+					return resolve(configurations);
+				}
+
+				var configuration = configurations[name];
+				var stealConfig = configuration.steal || {};
+				var system = _.extend({}, info.system, stealConfig);
+				var options = { quiet: true };
+
+				pluginify(system, options).then(function(pluginify){
+					// Attach the pluginify function to the configuration
+					configuration.pluginify = pluginify;
+
+					// Recurse, doing the next pluginify function
+					pluginifier();
+				});
 			}
 
-			var configuration = configurations[name];
-			var stealConfig = configuration.steal || {};
-			var system = _.extend({}, info.system, stealConfig);
+			pluginifier();
 
-			pluginify(system).then(function(pluginify){
-				// Attach the pluginify function to the configuration
-				configuration.pluginify = pluginify;
-
-				// Recurse, doing the next pluginify function
-				pluginifier();
-			});
-		}
-
-		pluginifier();
+		});
 
 	},
 
 	/**
 	 * Load plugins and generate pluginify functions for each
 	 */
-	loadPlugins: function(info, callback){
+	loadPlugins: function(info){
 		var modules = info.modules;
-		var plugins = utilities.getPlugins(modules);
+		var plugins = utilities.getModulesOfType(modules, "plugin");
 		var keys = Object.keys(plugins);
 
-		function pluginifier() {
-			var name = keys.shift();
-			if(!name) {
-				return callback(plugins);
+		return new Promise(function(resolve, reject) {
+
+			function pluginifier() {
+				var name = keys.shift();
+				if(!name) {
+					return resolve(plugins);
+				}
+
+				var module = plugins[name];
+
+				// If this module is hidden, skip it.
+				if(module.hidden) {
+					return pluginifier();
+				}
+
+				var parts = name.split("/");
+				var moduleName = name + "/" + parts[parts.length - 1];
+
+				var system = _.extend({}, info.system, {
+					main: moduleName
+				});
+				var options = { quiet: true };
+
+				pluginify(system, options).then(function(pluginify){
+					module.pluginify = pluginify;
+
+					pluginifier();
+				});
 			}
 
-			var module = plugins[name];
+			pluginifier();
 
-			// If this module is hidden, skip it.
-			if(module.hidden) {
-				return pluginifier();
+		});
+	},
+
+	loadLoadingModules: function(info) {
+		var modules = info.modules;
+		var loaders = utilities.getModulesOfType(modules, "loader");
+		var keys = Object.keys(loaders);
+
+		return new Promise(function(resolve, reject) {
+
+			function pluginifier() {
+				var name = keys.shift();
+				if(!name) {
+					return resolve(loaders);
+				}
+
+				var module = loaders[name];
+				var parts = name.split("/");
+				var moduleName = name.indexOf(".js") !== -1 ?
+					name.substr(0, name.indexOf(".js")) :
+					name + "/" + parts[parts.length - 1];
+
+				var system = _.extend({}, info.system, {
+					main: moduleName
+				});
+				var options = { quiet: true };
+
+				pluginify(system, options).then(function(pluginify) {
+					module.pluginify = pluginify;
+					
+					pluginifier();
+				});
 			}
 
-			var parts = name.split("/");
-			var moduleName = name + "/" + parts[parts.length - 1];
+			pluginifier();
 
-			var system = _.extend({}, info.system, {
-				main: moduleName
-			});
-
-			pluginify(system).then(function(pluginify){
-				module.pluginify = pluginify;
-
-				pluginifier();
-			});
-		}
-
-		pluginifier();
+		});
 	},
 
 	/**
@@ -157,15 +205,22 @@ var builder = function (options, callback) {
 		system: options.steal
 	});
 
-	utilities.loadConfigurations(info, function(configurations){
-		console.log("Loaded configurations.");
+	utilities.loadConfigurations(info)
+		.then(function(configurations){
+			console.log("Loaded configurations.");
 
-		utilities.loadPlugins(info, function(plugins){
+			return utilities.loadPlugins(info);
+		})
+		.then(function(plugins){
 			console.log("Loaded plugins.");
+
+			return utilities.loadLoadingModules(info);
+		})
+		.then(function(){
+			console.log("Loaded domless.");
 
 			callback(info);
 		});
-	});
 };
 
 _.extend(builder, utilities);
