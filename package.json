@@ -19,6 +19,6 @@
     "querystring": "~0.2.0",
     "request": "~2.27.0",
     "steal": "https://github.com/bitovi/steal-build/tarball/master",
-    "steal-tools": "git://github.com/bitovi/steal-tools.git#systemjs"
+    "steal-tools": "^0.2.3"
   }
 }
