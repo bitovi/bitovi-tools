@@ -33,10 +33,6 @@ module.exports = function (grunt) {
 
 		keys.forEach(function(name){
 			var configuration = configurations[name];
-			var library = configuration.library;
-			var libraryModule = "can/" + library;
-			libraryModule = libraryModule.substr(0, libraryModule.indexOf(".js"));
-
 			if(configuration.hidden) {
 				return;
 			}
@@ -46,13 +42,14 @@ module.exports = function (grunt) {
 															 name.toLowerCase() + ".js");
 
 			// Save out the default build
-			saveFile(configuration, filename, [libraryModule]);
+			saveFile(configuration, filename, [name]);
 
 			// Save a dev version if needed
 			if(options.dev) {
 				filename = path.join(dest, (options.prefix || "") + name.toLowerCase() +
 														 ".dev.js");
-				saveFile(configuration, filename, [libraryModule], null, true);
+
+				saveFile(configuration, filename, [name], null, true);
 			}
 		});
 	}
@@ -76,6 +73,8 @@ module.exports = function (grunt) {
 	}
 
 	grunt.registerMultiTask("builder", "Pluginify using the download builder configuration", function () {
+		debugger;
+
 		var done = this.async();
 		var options = this.options();
 		var file = this.files[0];
@@ -88,9 +87,10 @@ module.exports = function (grunt) {
 			saveConfigurations(options, file, configurations);
 
 			// Get the core modules so that we can ignore them.
-			var defaultConfiguration = configurations[Object.keys(configurations)[0]];
+			var defaultConfigurationName = Object.keys(configurations)[0];
+			var defaultConfiguration = configurations[defaultConfigurationName];
 			var graph = defaultConfiguration.pluginify.graph;
-			var ignores = pluginify.getAllIgnores([options.main], graph);
+			var ignores = pluginify.getAllIgnores([options.main, defaultConfigurationName], graph);
 
 			// Save out the plugin files
 			savePlugins(options, file, plugins, ignores);
