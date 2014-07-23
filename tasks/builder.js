@@ -90,7 +90,8 @@ module.exports = function (grunt) {
 			var defaultConfigurationName = Object.keys(configurations)[0];
 			var defaultConfiguration = configurations[defaultConfigurationName];
 			var graph = defaultConfiguration.pluginify.graph;
-			var ignores = pluginify.getAllIgnores([options.main, defaultConfigurationName], graph);
+			var ignores = Object.keys(graph);
+			//var ignores = pluginify.getAllIgnores([options.main, defaultConfigurationName], graph);
 
 			// Save out the plugin files
 			savePlugins(options, file, plugins, ignores);

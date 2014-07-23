@@ -6,44 +6,26 @@ module.exports = function(grunt) {
 	var _ = grunt.util._;
 
 	grunt.registerMultiTask('pluginifyTests', 'Pluginify tests for builder.json modules', function() {
-		debugger;
-
 		var done = this.async();
 		var options = this.options();
 		var dest = options.to;
-		var modules = {};
-		_.each(options.builder.modules, function(module, name) {
-			if(module.type !== "loader") {
-				modules[name] = module;
-			}
+
+
+		var system = _.extend({}, options.steal, {
+			main: 'test/all-tests'
 		});
-		var testsToPluginify = _.map(modules, function(module, key) {
-			return key + "/" + key.split('/').pop() + '_test'
+		var pOptions = { quiet: true };
+
+		pluginifier(system, pOptions).then(function(pluginify) {
+			var graph = pluginify.graph;
+
+			var content = pluginify(null, {
+				// Ignore everything that doesn't end with _test
+				ignore: /^(?:.{0,3}|.*(?!test).{4})$/
+			});
+
+			grunt.log.writeln('Writing pluginified tests to ' + dest);
+			grunt.file.write(dest, content);
 		});
-
-		grunt.verbose.writeln("Pluginifying tests");
-		grunt.verbose.writeln(testsToPluginify);
-
-		function next() {
-			var moduleName = testsToPluginify.shift();
-			if(!moduleName) {
-				done();
-				return;
-			}
-
-			var system = _.extend({}, options.steal, {
-				main: moduleName
-			});
-			var pOptions = { quiet: true };
-
-			pluginifier(system, pOptions).then(function(pluginify) {
-				// TODO Write out this pluginfied file.
-
-				grunt.verbose.writeln("Finished", moduleName);
-				next();
-			});
-		}
-
-		next();
 	});
 }

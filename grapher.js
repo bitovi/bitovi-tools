@@ -201,10 +201,10 @@ var builder = function (options, callback) {
 	});
 
 	utilities.loadMain(info, function(){
-		console.log("Loaded base.");
+		//console.log("Loaded base.");
 
 		utilities.loadPlugins(info, function(plugins){
-			console.log("Loaded plugins.");
+			//console.log("Loaded plugins.");
 
 			utilities.loadLoaders(info, function() {
 				callback(info);

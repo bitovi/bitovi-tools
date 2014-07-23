@@ -207,17 +207,17 @@ var builder = function (options, callback) {
 
 	utilities.loadConfigurations(info)
 		.then(function(configurations){
-			console.log("Loaded configurations.");
+			//console.log("Loaded configurations.");
 
 			return utilities.loadPlugins(info);
 		})
 		.then(function(plugins){
-			console.log("Loaded plugins.");
+			//console.log("Loaded plugins.");
 
 			return utilities.loadLoadingModules(info);
 		})
 		.then(function(){
-			console.log("Loaded domless.");
+			//console.log("Loaded domless.");
 
 			callback(info);
 		});
