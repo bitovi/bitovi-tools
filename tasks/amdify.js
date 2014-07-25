@@ -28,6 +28,7 @@ module.exports = function(grunt) {
 			"steal/dev/dev": true,
 			"stealconfig": true
 		};
+		// Save out a file
 		function saveFile(item, name) {
 			if(saved[name]) return;
 			saved[name] = true;

@@ -26,6 +26,8 @@ module.exports = function(grunt) {
 
 			grunt.log.writeln('Writing pluginified tests to ' + dest);
 			grunt.file.write(dest, content);
+
+			done();
 		});
 	});
 }

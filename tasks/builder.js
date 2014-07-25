@@ -42,14 +42,20 @@ module.exports = function (grunt) {
 															 name.toLowerCase() + ".js");
 
 			// Save out the default build
-			saveFile(configuration, filename, [name]);
+			saveFile(configuration, filename, [
+				name,
+				name + "/" + name
+			]);
 
 			// Save a dev version if needed
 			if(options.dev) {
 				filename = path.join(dest, (options.prefix || "") + name.toLowerCase() +
 														 ".dev.js");
 
-				saveFile(configuration, filename, [name], null, true);
+				saveFile(configuration, filename, [
+					name,
+					name + "/" + name
+				], null, true);
 			}
 		});
 	}
@@ -73,11 +79,11 @@ module.exports = function (grunt) {
 	}
 
 	grunt.registerMultiTask("builder", "Pluginify using the download builder configuration", function () {
-		debugger;
-
 		var done = this.async();
 		var options = this.options();
 		var file = this.files[0];
+
+		debugger;
 
 		builder(options, function(info){
 			var configurations = info.configurations;

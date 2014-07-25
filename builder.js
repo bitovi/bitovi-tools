@@ -52,7 +52,9 @@ var utilities = {
 				var configuration = configurations[name];
 				var stealConfig = configuration.steal || {};
 				var system = _.extend({}, info.system, stealConfig);
-				var options = { quiet: true };
+
+				var pluginifyOptions = configuration.pluginifyOptions || {};
+				var options = _.extend({ quiet: true }, pluginifyOptions);
 
 				pluginify(system, options).then(function(pluginify){
 					// Attach the pluginify function to the configuration
@@ -98,7 +100,8 @@ var utilities = {
 				var system = _.extend({}, info.system, {
 					main: moduleName
 				});
-				var options = { quiet: true };
+				var pluginifyOptions = info.pluginifyOptions || {};
+				var options = _.extend({ quiet: true }, pluginifyOptions);
 
 				pluginify(system, options).then(function(pluginify){
 					module.pluginify = pluginify;
@@ -134,7 +137,8 @@ var utilities = {
 				var system = _.extend({}, info.system, {
 					main: moduleName
 				});
-				var options = { quiet: true };
+				var pluginifyOptions = info.pluginifyOptions || {};
+				var options = _.extend({ quiet: true }, pluginifyOptions);
 
 				pluginify(system, options).then(function(pluginify) {
 					module.pluginify = pluginify;
@@ -202,7 +206,8 @@ var builder = function (options, callback) {
 		path: filePath,
 		configurations: {},
 	}, builder, pkg, {
-		system: options.steal
+		system: options.steal,
+		pluginifyOptions: options.pluginifyOptions
 	});
 
 	utilities.loadConfigurations(info)
