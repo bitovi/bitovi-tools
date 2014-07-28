@@ -100,8 +100,20 @@ var utilities = {
 			});
 
 			var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
-
-			make(system)
+			var options = {};
+			if(info.transpile !== false) {
+				options = {
+					useNormalizedDependencies: true,
+					normalize: function(name){
+						var parts = name.split("/");
+						if(parts.length > 2) {
+							parts.splice(parts.length-2,1);
+						}
+						return parts.join("/");
+					}
+				};
+			}
+			make(system, options)
 			.then(function(data){
 				module.graph = data.graph;
 
@@ -154,7 +166,7 @@ var utilities = {
 					}
 				};
 			}
-			make(system)
+			make(system, options)
 			.then(function(data){
 				module.graph = data.graph;
 
