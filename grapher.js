@@ -50,8 +50,20 @@ var utilities = {
 	 */
 	loadMain: function(info, callback){
 		var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
-
-		make(info.system).then(function(data){
+		var options = {};
+		if(info.transpile !== false) {
+			options = {
+				useNormalizedDependencies: true,
+				normalize: function(name){
+					var parts = name.split("/");
+					if(parts.length > 2) {
+						parts.splice(parts.length-2,1);
+					}
+					return parts.join("/");
+				}
+			};
+		}
+		make(info.system, options).then(function(data){
 			info.graph = data.graph;
 
 			callback(info);
@@ -129,7 +141,19 @@ var utilities = {
 			});
 
 			var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
-
+			var options = {};
+			if(info.transpile !== false) {
+				options = {
+					useNormalizedDependencies: true,
+					normalize: function(name){
+						var parts = name.split("/");
+						if(parts.length > 2) {
+							parts.splice(parts.length-2,1);
+						}
+						return parts.join("/");
+					}
+				};
+			}
 			make(system)
 			.then(function(data){
 				module.graph = data.graph;
@@ -164,7 +188,7 @@ var utilities = {
 		// It exists, return the json.
 		return require(filePath);
 	}
-}
+};
 
 /**
  * Load the download builder information which will contain:
