@@ -8,7 +8,8 @@ var utilities = {
 	/**
 	 * @method getModulesOfType
 	 *
-	 * Get the modules of a specific type from a builder.json file's modules
+	 * Get the modules of a specific type from a builder.json file's modules.
+	 * The type could be 'core', 'plugin', or 'loader'.
 	 *
 	 * @param {Object} modules The modules
 	 * @param {String} type The type (plugin, loader, etc.)
@@ -32,9 +33,10 @@ var utilities = {
 	/**
 	 * @method getPlugins
 	 *
-	 * Get the plugins from a builder.json file's modules
+	 * Get the module object from builder.json for plugins.
 	 *
-	 * @param {Object} modules The modules
+	 * @param {Object} modules The full modules object containing everything in
+	 * core and all plugins.
 	 * @return {Object} Modules that are plugins.
 	 */
 	getPlugins: function(modules){
@@ -42,13 +44,15 @@ var utilities = {
 	},
 
 	/**
-	 * Load the main file using default configuration options
+	 * Load the main file using default configuration options. For CanJS this will
+	 * load all of core by loading can/can.
 	 *
 	 * @method loadMain
 	 * @param {Object} info The info object
 	 * @param {Function} callback
 	 */
 	loadMain: function(info, callback){
+	// Stealify will use makeGraph and amdify will use makeOrderedTranspiledMinifiedGraph.
 		var make = info.transpile === false ? makeGraph : makeOrderedTranspiledMinifiedGraph;
 		var options = {};
 		if(info.transpile !== false) {
@@ -63,6 +67,7 @@ var utilities = {
 				}
 			};
 		}
+
 		make(info.system, options).then(function(data){
 			info.graph = data.graph;
 
@@ -72,19 +77,32 @@ var utilities = {
 
 
 	/**
-	 * Load plugins and generate pluginify functions for each
+	 * @method loadPlugins
+	 *
+	 * Individually loads all of the plugins in order to get their graph.
 	 */
 	loadPlugins: function(info, callback){
+		// Modules is an object containing all possible modules from builder.json
 		var modules = info.modules;
 		var plugins = utilities.getPlugins(modules);
+
+		// This is an array of all of the plugin moduleNames. We'll go through these
+		// one by one and obtain their graphs.
 		var keys = Object.keys(plugins);
 
+		// This is a function to retrieve the graph for a single plugin. This is
+		// done one at a time because attempting to get the graph for multiple
+		// modules simultaneously will cause errors.
 		function grapher() {
-			var name = keys.shift();
-			if(!name) {
+			// If 
+			if(!keys.length) {
 				return callback(plugins);
 			}
 
+			// Get the next moduleName
+			var name = keys.shift();
+
+			// This is the module object from the builder.json file
 			var module = plugins[name];
 
 			// If this module is hidden, skip it.
@@ -92,9 +110,16 @@ var utilities = {
 				return grapher();
 			}
 
+			// This converts steal moduleName's to their fully normalized versions
+			// ie: can/view is actually can/view/view.
+			// TODO Somehow expose System.normalize from steal-tools so this can be
+			// done properly.
 			var parts = name.split("/");
 			var moduleName = name + "/" + parts[parts.length - 1];
 
+			// info.system will contain some system options, such as `config` and
+			// `baseURL` that we want to pass into our make function, this just
+			// overrides the `main` module.
 			var system = _.extend({}, info.system, {
 				main: moduleName
 			});
@@ -113,10 +138,12 @@ var utilities = {
 					}
 				};
 			}
+
 			make(system, options)
 			.then(function(data){
 				module.graph = data.graph;
 
+				// Recurse to get the next plugin module.
 				grapher();
 			});
 		}
@@ -124,6 +151,14 @@ var utilities = {
 		grapher();
 	},
 
+	/**
+	 * @method loadLoaders
+	 *
+	 * This is a dirty hack to load all modules of the "loader" type. This
+	 * includes can/util/domless and can/stache/system.js. Probably a better solution
+	 * would be to have a single plugin called "steal template plugins" that
+	 * includes can/util/domless and the ejs, mustache and stache system.js modules.
+	 */
 	loadLoaders: function(info, callback){
 		var modules = info.modules;
 		var loaders = utilities.getModulesOfType(modules, "loader");
@@ -142,6 +177,9 @@ var utilities = {
 				return grapher();
 			}
 
+			// This normalizes module names to their fully normalized form. For example
+			// can/view becomes can/view/view.	If the name already ends with .js then
+			// just return everything but the .js.
 			var parts = name.split("/");
 			var moduleName = name.indexOf(".js") !== -1 ?
 				name.substr(0, name.indexOf(".js")) :
@@ -182,7 +220,7 @@ var utilities = {
 	 * @method maybeGetInfo
 	 *
 	 * Get an options object, either `builder.json` or `package.json` or return
-	 * false if it's not found.
+	 * false if it's not found. The object might either be on the main `option` object itself or should be retrieved from the filesystem.
 	 *
 	 * @param {Object} options The options object to get
 	 * @param {String} name
@@ -218,6 +256,8 @@ var utilities = {
  * @returns {*}
  */
 var builder = function (options, callback) {
+	// The settings file can either be an object or a path to the folder containing
+	// the options (such as builder.json and package.json).
 	var settings = typeof options === 'string' ? { path: options } : options;
 	var filePath = settings.path;
 
@@ -228,6 +268,11 @@ var builder = function (options, callback) {
 		return callback(null, null);
 	}
 
+	// This combines the package.json, builder.json, and Gruntfile options object
+	// into one massive object containing the configurations to build, the modules
+	// to build for each configuration, and a `system` object on each configuration
+	// containing the paths for that configuration (and other system options). All
+	// of this can be seen from the builder.json file.
 	var info = _.extend({
 		path: filePath,
 		configurations: {},
@@ -236,13 +281,21 @@ var builder = function (options, callback) {
 		system: options.steal
 	});
 
+	// loadMain, loadPlugins, and loadLoaders all do the same thing essentially.
+	// They get the graph for a set of modules and attach the graph back onto
+	// the module (or configuration in the case of configurations).
+
+	// Load the "main" module, such as can/can. This will get the core graph.
 	utilities.loadMain(info, function(){
-		//console.log("Loaded base.");
 
+		// Load the individual plugin modules to get their graph.
 		utilities.loadPlugins(info, function(plugins){
-			//console.log("Loaded plugins.");
 
+			// This loads loader plugins, such as can/util/domless and can/stache/system.js. This should probably be removed in favor of a proper plugin that loads all of the above. This only exists now to prevent these modules from appearing on the website's custom download builder.
 			utilities.loadLoaders(info, function() {
+
+				// Once you've loaded the sets of modules all are attached back onto
+				// the `info` object and can be passed back to the grunt task itself.
 				callback(info);
 			});
 		});
