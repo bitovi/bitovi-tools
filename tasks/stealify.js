@@ -1,23 +1,58 @@
-var stealify = require('steal').build.stealify;
+var fs = require("fs");
 var path = require('path');
+var grapher = require("../grapher");
 
 module.exports = function(grunt) {
 	var _ = grunt.util._;
 
-	grunt.registerMultiTask('stealify', 'Extract a clean list of Steal dependencies.', function() {
+	grunt.registerMultiTask("stealify", "Extract a clean list of Steal dependencies.", function() {
 		var done = this.async();
 		var options = this.options();
-		var dest = this.files[0].dest;
+		var file = this.files[0];
+		var dist = file.dest;
+		options.transpile = false;
 
-		stealify(options.ids, options, function(error, data) {
-			_.each(data, function(content, name) {
-				var fullName = path.join(dest, name);
-				var banner = options.banner || '';
-				grunt.file.mkdir(path.dirname(fullName));
-				grunt.file.write(fullName, banner + content);
-				grunt.verbose.writeln('Writing ' + fullName);
-			});
+		grapher(options, function(info){
+			var base = { graph: info.graph };
+			var plugins = grapher.getPlugins(info.modules);
+			var loaders = grapher.getModulesOfType(info.modules, "loader");
+
+			saveFile(base);
+			_.each(plugins, saveFile);
+			_.each(loaders, saveFile);
+
+			console.log("Files wrote.");
+
 			done();
 		});
+
+		var saved = {
+			"jquery": true,
+			"steal/dev/dev": true,
+			"stealconfig": true
+		};
+		function saveFile(item, name) {
+			try {
+				if(saved[name]) return;
+				saved[name] = true;
+
+				// Save this file out to the proper location
+				var source = item.load && item.load.source;
+				if(source) {
+					var outname = name.replace(/^can/, "canjs/"); 
+					var filename = path.join(dist, outname + ".js");
+
+					grunt.verbose.writeln('Writing ' + filename);
+					grunt.file.write(filename, source);
+				}
+
+				var graph = item.graph;
+				if(graph) {
+					_.each(graph, saveFile);
+				}
+			} catch(err) {
+				console.log("ERR:", err);
+			}
+		}
 	});
 }

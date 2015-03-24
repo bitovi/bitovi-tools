@@ -1,101 +1,110 @@
-var fs = require('fs');
-var path = require('path');
-var steal = require('steal');
-var builder = steal.build.builder;
+var fs = require("fs");
+var path = require("path");
+var builder = require("../builder");
+var pluginify = require("steal-tools").pluginify;
 
 module.exports = function (grunt) {
-    var _ = grunt.util._;
-    var async = grunt.util.async;
 
-    function buildFiles(build, name, dest, dev, options, callback) {
-        name = path.join(dest, name);
-        var workers = [
-            function(cb) {
-                build(_.omit(options, 'dev'), function (error, content, banner, steals) {
-                    var filename = name + '.js';
-                    console.log('Writing ' + filename);
-                    grunt.file.write(filename, banner + content);
-                    cb.apply(this, arguments);
-                });
-            }
-        ];
+	function saveFile(item, filename, ignores, dev) {
+		console.log("Writing", filename);
 
-        if (dev) {
-            workers.push(function(cb) {
-                build(options, function (error, content, banner) {
-                    var filename = name + '.dev.js';
-                    console.log('Writing ' + filename);
-                    grunt.file.write(filename, banner + content);
-                    cb.apply(this, arguments);
-                });
-            });
-        }
+		// Get the content for this one.
+		var moduleName = item.moduleName || null;
+		if(moduleName) {
+			var parts = moduleName.split("/");
+			moduleName += "/" + parts[parts.length - 1];
+		}
 
-        async.series(workers, function(err, args) {
-            if(callback) {
-                callback.apply(this, [err].concat(args[0]));
-            }
-        });
-    }
+		var pluginify = item.pluginify;
+		var content = pluginify(moduleName, {
+			ignore: ignores || [],
+			keepDevTags: !!dev
+		});
 
-    grunt.registerMultiTask('builder', 'Pluginify using the download builder configuration', function () {
-        var done = this.async();
-        var options = this.options();
-        this.files.forEach(function (f) {
-            var src = f.src[0];
+		grunt.file.write(filename, content);
+	}
 
-            builder({
-                path: fs.realpathSync(src),
-                steal: options.steal
-            }, function (error, info, build) {
-                var configurations = options.configurations || _.keys(info.configurations);
-                var defaultConfiguration = configurations.shift();
-                var builderOptions = {
-                    url: options.url,
-                    dev: options.dev,
-                    pluginify: options.pluginify
-                };
-                var buildWithConfiguration = function (name, callback) {
-                    if (info.configurations[name].hidden) {
-                        return;
-                    }
+	/**
+	 * Save out configurations to their final resting place
+	 */
+	function saveConfigurations(options, file, configurations) {
+		var keys = Object.keys(configurations);
+		var dest = file.dest;
 
-                    builderOptions.configuration = name;
+		keys.forEach(function(name){
+			var configuration = configurations[name];
+			if(configuration.hidden) {
+				return;
+			}
 
-                    buildFiles(build, (options.prefix || '') + name, f.dest, options.dev, builderOptions, callback);
-                }
+			// The destination for this file
+			var filename = path.join(dest, (options.prefix || "") +
+															 name.toLowerCase() + ".js");
 
-                // build core for other libraries
-                configurations.forEach(function(name) {
-                    buildWithConfiguration(name);
-                });
+			// Save out the default build
+			saveFile(configuration, filename, [
+				name,
+				name + "/" + name
+			]);
 
-                // Build the default configuration and all plugins (excluding the core Steals)
-                buildWithConfiguration(defaultConfiguration, function (error, content, banner, steals) {
-                    var plugins = _.filter(_.keys(options.builder.modules), function (mod) {
-                        return options.builder.modules[mod]["type"] === "plugin" && !options.builder.modules[mod].hidden;
-                    });
+			// Save a dev version if needed
+			if(options.dev) {
+				filename = path.join(dest, (options.prefix || "") + name.toLowerCase() +
+														 ".dev.js");
 
-                    // Ignore the core steals
-                    builderOptions.pluginify.ignore = steals.map(function (stl) {
-                        return '' + stl.options.id;
-                    });
-                    builderOptions.pluginify.shim = _.extend({
-                        "can/util/util.js": "window.can"
-                    }, info.pluginify.shim);
-                    builderOptions.pluginify.exports = {};
+				saveFile(configuration, filename, [
+					name,
+					name + "/" + name
+				], null, true);
+			}
+		});
+	}
 
-                    // Build all plugins
-                    plugins.forEach(function (plugin) {
-                        var name = options.builder.modules[plugin].name.toLowerCase();
+	function savePlugins(options, file, plugins, ignores) {
+		var main = options.main;
+		var keys = Object.keys(plugins);
+		var dest = file.dest;
 
-                        builderOptions.ids = [plugin];
-                        buildFiles(build, name, f.dest, false, builderOptions);
-                    });
-                });
+		keys.forEach(function(name){
+			var plugin = plugins[name];
+			plugin.moduleName = name;
 
-                done();
-            });
-        });
-    });
+			if(plugin.hidden) {
+				return;
+			}
+
+			var filename = path.join(dest, plugin.name.toLowerCase() + ".js");
+			saveFile(plugin, filename, ignores);
+		});
+	}
+
+	grunt.registerMultiTask("builder", "Pluginify using the download builder configuration", function () {
+		var done = this.async();
+		var options = this.options();
+		var file = this.files[0];
+
+		debugger;
+
+		builder(options, function(info){
+			var configurations = info.configurations;
+			var plugins = builder.getModulesOfType(info.modules, "plugin");
+
+			// Save out the configuration files
+			saveConfigurations(options, file, configurations);
+
+			// Get the core modules so that we can ignore them.
+			var defaultConfigurationName = Object.keys(configurations)[0];
+			var defaultConfiguration = configurations[defaultConfigurationName];
+			var graph = defaultConfiguration.pluginify.graph;
+			var ignores = Object.keys(graph);
+			//var ignores = pluginify.getAllIgnores([options.main, defaultConfigurationName], graph);
+
+			// Save out the plugin files
+			savePlugins(options, file, plugins, ignores);
+
+			done();
+		});
+
+	});
+
 };

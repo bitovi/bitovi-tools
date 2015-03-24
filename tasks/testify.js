@@ -1,5 +1,7 @@
 var ejs = require('ejs');
 var beautify = require('js-beautify');
+var fs = require('fs');
+var path = require('path');
 
 module.exports = function(grunt) {
 	var _ = grunt.util._;
@@ -23,12 +25,17 @@ module.exports = function(grunt) {
 
 			_.each(modules, function(definition, key) {
 				if(!definition.configurations || definition.configurations.indexOf(configurationName) !== -1) {
+					if(definition.hasTest === false) return;
+
 					var name = key.substr(key.lastIndexOf('/') + 1);
 					var mod = transform.module ? transform.module(definition, key) : key;
 					var test = transform.test ? transform.test(definition, key) : (key + '/' + name + '_test.js');
 
 					mod && options.modules.push(mod);
-					test && options.tests.push(test);
+
+					if(test) {
+						options.tests.push(test);
+					}
 				}
 			});
 
