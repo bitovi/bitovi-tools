@@ -40,10 +40,9 @@ module.exports = function(grunt) {
 				_.extend(options, transform.options.call(config, configurationName));
 			}
 
-			var lib = '<!-- AUTO GENERATED - DO NOT MODIFY -->\n'+
-				beautify.html(ejs.render(template, options), {
+			var lib = beautify.html(ejs.render(template, options), {
 					"wrap_line_length": 70
-				});
+				}).replace('<html>', '<!-- AUTO GENERATED - DO NOT MODIFY -->\n<html>');
 
 			grunt.log.writeln('Generating ' + data.out + configurationName + '.html');
 			grunt.file.write(data.out + configurationName + '.html', lib);
