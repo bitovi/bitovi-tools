@@ -18,6 +18,6 @@
     "lodash": "^2.4.1",
     "querystring": "~0.2.0",
     "request": "~2.27.0",
-    "steal-tools": "git://github.com/bitovi/steal-tools#master"
+    "steal-tools": "^0.7.4"
   }
 }
